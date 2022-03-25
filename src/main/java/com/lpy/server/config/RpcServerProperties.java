@@ -75,6 +75,8 @@ public class RpcServerProperties implements Serializable {
     @Value("${thrift.timeout:0}")
     private int timeout;
 
+
+
     public String getZkServer() {
         return zkServer;
     }

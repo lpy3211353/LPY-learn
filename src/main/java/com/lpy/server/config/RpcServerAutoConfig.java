@@ -2,6 +2,7 @@ package com.lpy.server.config;
 
 import com.lpy.command.CommandService;
 import com.lpy.server.Dispatcher;
+import com.lpy.server.HealthListener;
 import com.lpy.server.RpcApiServiceImpl;
 import com.lpy.server.ServerRpcService;
 import org.I0Itec.zkclient.ZkClient;
@@ -9,6 +10,7 @@ import org.I0Itec.zkclient.serialize.SerializableSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -95,6 +97,18 @@ public class RpcServerAutoConfig {
         return new ServerRpcService(rpcApiService, zkClient, serverProp);
     }
 
+
+    /**
+     * rpc server断线重连配置
+     */
+    @Bean
+    @ConditionalOnBean({ZkClient.class, ServerRpcService.class, RpcServerProperties.class})
+    @ConditionalOnProperty(prefix = "com.lpy.server", name = "health", havingValue = "true")
+    public HealthListener offlineReconnect(ZkClient zkClient, ServerRpcService thriftRpcService, RpcServerProperties prop) {
+        logger.info("BASE(rpc server): 断线重连已打开");
+        return new HealthListener(zkClient, prop.getNodePath(), prop.getThriftPort(), thriftRpcService);
+    }
+
     @ConfigurationProperties("com.lpy.server")
     public static class RpcServerProp implements Serializable {
 
@@ -102,6 +116,16 @@ public class RpcServerAutoConfig {
          * 是否启用rpc server
          */
         private Boolean enabled;
+
+        private Boolean health;
+
+        public Boolean getHealth() {
+            return health;
+        }
+
+        public void setHealth(Boolean health) {
+            this.health = health;
+        }
 
         public Boolean getEnabled() {
             return enabled;
